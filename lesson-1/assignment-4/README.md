@@ -5,7 +5,7 @@ The objective of this assignment is to build a production-grade, layered **Retri
 
 ### Application Demo Video
 
-[![Watch the RAG System Demo](https://img.shields.io/badge/▶_Watch_Demo-Click_to_Play_Video-success?style=for-the-badge&logo=quicktime)](https://github.com/KeerthiKeswaran/genai/raw/main/lesson-1/assignment-4/assets/demo.mp4)
+<video src="assets/demo.mp4" width="100%" controls></video>
 
 *If the video player does not stream directly in your browser, you can download the recording directly via this **[Direct Video File Link](https://github.com/KeerthiKeswaran/genai/raw/main/lesson-1/assignment-4/assets/demo.mp4)**.*
 

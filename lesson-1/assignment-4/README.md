@@ -3,7 +3,7 @@
 ## Objective & Overview
 The objective of this assignment is to build a production-grade, layered **Retrieval-Augmented Generation (RAG)** application. This tool allows employees to ask natural language questions about corporate policies and receive highly accurate, context-grounded answers. 
 
-<video src="assets/demo.mp4" width="100%" controls></video>
+<video src="https://github.com/KeerthiKeswaran/genai/raw/main/lesson-1/assignment-4/assets/demo.mp4" width="100%" controls></video>
 
 To achieve high speed and premium response quality, the application decouples vector generation from logical synthesis:
 * **Vector Embeddings (Local)**: Generated using a local Ollama instance running the lightweight `tinyllama:latest` model.

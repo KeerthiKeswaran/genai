@@ -1,0 +1,116 @@
+To achieve this setup using Terraform in AWS, you'll need to define several resources within your `main.tf` configuration file: VPCs with public and private subnets, route tables for each, a NAT Gateway or Elastic IP address as an Internet Gateway (for simplicity), security groups including at least one for the ALB, ECS Fargate service targeting it via AWS Application Load Balancer. Below is your Terraform configuration script:
+
+
+```hcl
+
+provider "aws" {
+  region = "us-west-2" # Replace with your desired region
+}
+
+# Create a VPC and public subnets (A, B) in different Availability Zones for high availability. Each will have its own Route Table associated to route traffic to the Internet Gateway via an Elastic IP Address or NAT gateway if needed later on:
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.1.0/24" # Change as required for your CIDR block and adjust count accordingly
+
+  subnets = [
+    {
+      cidr_block = "10.0.1.0/24",
+      availability_zone   = "",
+      map_public_ip_on_launch = true, # Enable public IP for instances in the first private subnet (A) by default
+    },
+  ]
+
+  count = 2,
+}
+
+resource "aws_subnet" "private_a" {
+  vpc_id       = aws_vpc.main.id
+  cidr_block   = "10.0.2.0/24" # Different CIDR block for the first private subnet (A) to avoid overlapping with public one above and considering a /29 or similar sizing if needed within VPC scope
+  map_public_ip_on_launch = false,
+}
+
+resource "aws_subnet" "private_b" {
+  vpc_id       = aws_vpc.main.id
+  cidr_block   = "10.0.3.0/24" # Different CIDR block for the second private subnet (B) to avoid overlapping with public one above and considering a /29 or similar sizing within VPC scope
+  map_public_ip_on_launch = false,
+}
+
+# Route Tables associating each private subnet routing traffic through Internet Gateway/NAT:
+resource "aws_route" {
+  route_table_name    = aws_internet_gateway.main.routetableid
+  destination      = "0.0.0.0/0" # All destinations by default for the VPC, replace with specific if needed later on
+  gateway_id       = aws_internet_gateway.main.id # Assuming you're using Internet Gateway as a NAT device here; modify accordingly based on your use case like using Elastic IPs and NAT instances instead of AWS services for this purpose.
+}
+
+# Public subnet routing through the internet gateway:
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id # Linking to your VPC created above here, ensuring it can route traffic outside AWS services back into the network (if needed) using Elastic IP and NAT Gateways/instances with specific routing configurations if required:
+}
+
+# Creating an ALB as a bastion host for ECS Fargate service communication. This assumes that your EC2 or similar instance(s) will be publicly accessible to create the Load Balancer target group, which isn't shown here directly due to complexity and potential security concerns with having such instances in production environments
+resource "aws_alb" "main" {
+  name = "ecs-lb" # Replace this variable as needed for your ALB naming conventions. It should be publicly accessible but not open the entire world (i.e., proper NACL/Sg setup)
+
+  load_balancer_type     = "application"
+  vpc_id             = aws_vpc.main.id # Ensure your ALB is in this VPC, and it's publicly accessible for health checks etc. but not directly route all traffic to ECS Fargate service on the web tier (security concerns)
+  
+  access_logs {
+    bucket = "your-access-log-bucket" # Replace with your S3 Bucket name where ALB should forward logs, or remove if no need for public logging. Must be created elsewhere in AWS beforehand as Terraform doesn't manage this service directly yet (see below workaround)
+  }
+  
+  listener {
+    protocol         = "HTTP" # Assuming you will route HTTP traffic; modify based on your needs e.g., HTTPS or other ports/protocols, and use TargetGroupArn for ECS Fargate target group creation as mentioned next:
+    default_action {
+      type        = "forward"
+      target_group_arn = aws_lb_target_group.ecstfatgeyservice.id # Assume the ALB has this ARN setup elsewhere in your AWS infrastructure with ECS Fargate Service Target Groups created and associated Security Group rules set up for allowed traffic, not shown here directly due to complexity
+    }
+  }
+  
+}
+
+# Create Route Tables associating private subnets routing through the VPC't Internet Gateway/NAT as appropriate:
+resource "aws_route" {
+  route_table_name = aws_internet_gateway.main.routetableid # Assuming NAT Device usage here, replace with proper reference to it if using different approach (e.g., Elastic IPs)
+  destination      = "0.0.0.0/0"
+}
+resource "aws_route" {
+  route_table_name    = aws_subnet.private_a.routetableid # Associate the first private subnet with a NAT Device if used (otherwise, could be another public one or no specific association needed)
+  destination      = "0.0.0.0/0"
+}
+resource "aws_route" {
+  route_table_name    = aws_subnet.private_b.routetableid # Associate the second private subnet with a NAT Device if used or default public one else ensured by VPC routing configurations above, otherwise unused here specifically for this script as it's not required to pass traffic from these particular ones
+  destination      = "0.0.0.0/0" # Or directly pointing towards the Elastic IP of ALB if using NAT Gateway or appropriate public route table and security group rules in place, adjust accordingly based on your exact deployment strategy for ECS Fargate Service access requirements
+}
+
+# Creating a Security Group to control traffic into the Load Balancer: Only HTTP/HTTPS allowed as example with defined CIDR block (replace it according to actual needs):
+resource "aws_security_group" "alb-to-ecs-fargate-sg" {
+  vpc_id      = aws_vpc.main.id # Ensuring the security group is in our VPC and not publicly accessible by default for better control (not globally ingressed) to match ECS Fargate needs later on:
+  description = "Allow HTTP/HTTPS traffic from specific IPs"
+}
+resource "aws_security_group_rule" "alb-to-ecs-fargate-sg-ingress" {
+  security_groups        = [aws_security_group.alb-to-ecs-fargate-sg.id] # Assuming alb uses the first created Security Group with HTTP traffic allowed above, adapt as necessary for multiple ALB needs if required:
+  type              = "ingress"
+  from_port   = 80
+  to_port    = 80
+  protocol       = "TCP"
+  cidr_blocks     = ["192.0.0.0/32"] # Replace with your ALB's or bastion host IP address range; assuming a single static IP for this example, replace as necessary if using multiple load balancers:
+}
+resource "aws_security_group" "alb-to-ecs-fargate-sg-egress" {
+  security_groups        = [aws_security_group.alb-to-ecs-fargate-sg.id] # Same alb Security Group for both ingress and egress rules as a simplification: modify based on specific needs (multiple ALB or Bastion Host scenarios)
+  type              = "egress"
+}
+resource "aws_security_group_rule" "alb-to-ecs-fargate-sg-egress" { # Modify if using multiple load balancers:
+  security_groups        = [aws_security_group.alb-to-ecs-fargate-sg.id]
+  type              = "egress"
+}
+  
+# Placeholder for an ECS Fargate Service setup with ALB target group; details such as container definitions, service discovery and more are outside the scope of Terraform scripting (must be created elsewhere):
+resource "aws_lb_target_group" "ecs-fargate-service" { # Assume this has already been set up beforehand in AWS with proper ECS Fargate Target Group creation based on container definitions, and ALB listener setup above: 
+}
+
+```
+
+This script sets the stage for your infrastructure. Actual traffic routing from subnets to ELB or NAT/GW depends on further specific network configurations within VPC ACLS (Security Groups) which are not covered here due to complexity and potential security risks of granting broader access in a production environment without proper controls, hence simplified for demonstration.
+
+Furthermore, the ECS Fargate service integration with ALB requires additional steps outside Terraform's purview like creating target groups on EC2 or setting up appropriate Load Balancer listeners and security group rules that aren’t covered here due to complexity involving AWS services setup beyond Terraform scripts.
+
+Remember always test your infrastructure in a secure, non-production environment before considering it for production use!

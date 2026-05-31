@@ -1,0 +1,23 @@
+# AppDev Coding Standards - Python Database Operations
+
+1. Naming Conventions:
+   - All classes must use PascalCase (e.g., `DatabaseConnectionPool`).
+   - Functions and variable names must use snake_case (e.g., `get_connection`).
+   - Private methods/variables must start with a single underscore (e.g., `_create_connection`).
+
+2. Error Handling:
+   - All resource-intensive operations must be enclosed in `try...except...finally` blocks.
+   - Database connections must be explicitly closed or returned to the pool in the `finally` block.
+   - Do not catch generic `Exception` unless re-raising it or logging it; catch specific database exceptions (e.g., `psycopg2.Error`).
+
+3. Thread Safety:
+   - Shared resources (like connection arrays or count variables) must be protected using threading primitives (e.g., `threading.Lock`).
+   - Use context managers (`with self._lock:`) when modifying shared state.
+
+4. Performance & Design:
+   - Implement connection recycling based on connection age (max lifetime of 1 hour).
+   - Perform a validation query (e.g., `SELECT 1`) on retrieved connections before handing them to the caller.
+   - Connections must be created lazily up to a `max_connections` limit.
+
+5. Code Documentation:
+   - Every class and public method must have a docstring describing its behavior, arguments, and return types.

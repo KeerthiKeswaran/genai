@@ -1,0 +1,43 @@
+```sql
+SELECT
+  c.customer_id,
+  SUM(oi.quantity * oi.unit_price) AS total_spending, 
+  COUNT(DISTINCT oi.item_id) AS num_unique_products
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.order_date >= DATE('now', '-30 days') 
+GROUP BY c.customer_id,  total_spending
+ORDER BY total_spending DESC
+LIMIT 5;
+```
+
+**Explanation:**
+
+* **JOINs:** The query uses `JOIN` statements to connect the three tables based on foreign keys:
+    - `customers` with `orders` for customer ID.
+    - `orders` with `order_items` for order information.
+* **WHERE clause:**  Filters orders placed in the last 30 days (`o.order_date >= DATE('now', '-30 days')`).
+* **Subquery**: Calculates the total spending per customer by multiplying quantity and unit price from `order_items`.
+* **GROUP BY**: Groups results based on `customer_id` for each unique customer 
+  and sums the calculated total spending. 
+* **COUNT(DISTINCT oi.item_id)**: Counts the number of distinct products (unique items) per customer by using `COUNT(DISTINCT)` and a subquery.
+* **ORDER BY**: Sorts the results in descending order based on the `total_spending` to get the top 5 customers with highest spending first.
+* **LIMIT**: Limits the result set to the top 5 customers.
+
+
+**Indexing Implications:**
+
+For optimal query performance, you should consider these indexes:
+
+1. **Full-Text Index for Customers table**:  If your `customers` table has a lot of data (e.g., customer name or email), creating an index on those columns can significantly speed up lookups and joins in the query. 
+2. **Index on Order Date Column**: An index on the `order_date` column in the `orders` table speeds up searches for orders based on date.
+
+**Additional Considerations:**
+
+* **Database System**:  Different database systems have varying capabilities. For example, some systems offer more efficient data storage and retrieval mechanisms. 
+* **Query Optimization Tools**: Many databases provide built-in tools or libraries that can help optimize the query execution plan and find potential improvements.
+
+
+
+Let me know if you need a specific explanation of any part of the code!

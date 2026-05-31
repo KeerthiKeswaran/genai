@@ -1,0 +1,64 @@
+```python
+import psycopg2
+from queue import Queue
+import threading
+import time
+
+class ConnectionPool:
+    def __init__(self, max_connections=10, connection_timeout=5, idle_connection_lifetime=3600):  # Lifespan set to 1 hour in seconds
+        self.max_connections = max_connections
+        self._pool = Queue(maxsize=self.maxin connections)
+        self._lock = threading.Lock()
+        self.connection_timeout = connection_timeout
+        self.idle_connection_lifetime = idle_connection_lifetime  # Connection lifetime in seconds after which it's considered stale if not used
+        self.connections = []
+        for _ in range(max_connections):
+            self._pool.put(self._create_new_connection())
+
+    def get_connection(self):
+        with self._lock:  # Ensures thread safety when accessing the pool
+            try:
+                connection, timestamp = self._pool.get(timeout=self.connection_timeout)
+                if time.time() - timestamp > self.idle_connection_lifetime:  # Check for idle connections
+                    raise psycopg2.InterfaceError("Connection has been stale")
+            except queue.Empty:
+                    connection = self._create_new_connection()
+            return connection, time.time()
+        finally:
+            with self._lock:  # Ensures thread safety when returning the connection to the pool
+                if not psycopg2.connect().closed:
+                    psycopg2.dispose(connection)
+        
+    def _create_new_connection(self):
+        try:
+            with self._lock:  # Ensures thread safety when creating a new connection
+                conn = psycopg2.connect()
+                return conn, time.time()
+        except Exception as e:
+            raise ConnectionError("Unable to create database connection") from e
+        
+    def release_connection(self, connection):  # Safely releases the connection back into the pool
+        with self._lock:
+            timestamp = time.time()
+            if len(self.connections) < self.max_connections and not any(conn for conn, t in self.connections if (time.time() - t > self.idle_connection_lifetime):  # Only return idle connections back to the pool
+                idx = self.connections.index((None, timestamp))  # Find an empty slot or a stale connection spot
+                conn, _ = self.connections[idx]
+                psycopg2.dispose(connection) if not isinstance(conn, Exception) else None
+                self.connections[idx] = (connection, time.time())  # Return the used or expired one to ensure it's returned back into pool before being stale
+            elif len(self.connections) < self.max_connections:
+                    idx = max((conn for conn, t in enumerate(self.connections if not isinstance(t, Exception)), default=-1)  # Find an empty slot to return a new one into the pool without expiration check or stale connection warning
+                _, self.connections[idx] = (None, time.time())
+            else:
+                    psycopg2.dispose(connection) if not isinstance(conn, Exception) else None  # Release any unused/unopened connections when full and drop the oldest one at a cost of reconnecting on next use which might be expensive but avoids dropping active ones unnecessarily
+        def _validate_connection(self):  # Perform validation query before handing it over to caller if not idle for more than self.idle_connection_lifetime seconds
+            with connection:
+                cursor = connection.cursor()
+                cursor.execute("SELECT 1")
+    
+    @staticmethod
+    def _create_new_connection():
+        try:
+           return psycopg2.connect()
+        except Exception as e:
+               raise ConnectionError("Unable to create database connection") from e
+```

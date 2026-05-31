@@ -1,0 +1,44 @@
+[2026-05-31 16:07:48.281] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:07:53.151] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:07:53.159] Stage 1 matched: submit_button=True, query='How do I claim the remote work equipment stipend?'
+[2026-05-31 16:07:53.168] Stage 1 calling st.rerun()
+[2026-05-31 16:07:53.432] Script run started. processing=True, query_to_run='How do I claim the remote work equipment stipend?'
+[2026-05-31 16:07:53.446] Stage 2 matched: query_to_run='How do I claim the remote work equipment stipend?'
+[2026-05-31 16:07:53.452] Stage 2 calling query_rag
+[2026-05-31 16:07:56.927] Stage 2 query_rag returned successfully: answer_len=130
+[2026-05-31 16:07:56.927] Stage 2 finally block: clearing flags and calling st.rerun()
+[2026-05-31 16:07:57.114] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:08:13.832] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:08:13.843] Stage 1 matched: submit_button=True, query='What are the requirements for corporate passwords?'
+[2026-05-31 16:08:13.848] Stage 1 calling st.rerun()
+[2026-05-31 16:08:14.168] Script run started. processing=True, query_to_run='What are the requirements for corporate passwords?'
+[2026-05-31 16:08:14.180] Stage 2 matched: query_to_run='What are the requirements for corporate passwords?'
+[2026-05-31 16:08:14.189] Stage 2 calling query_rag
+[2026-05-31 16:08:17.483] Stage 2 query_rag returned successfully: answer_len=385
+[2026-05-31 16:08:17.485] Stage 2 finally block: clearing flags and calling st.rerun()
+[2026-05-31 16:08:17.717] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:15:04.438] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:15:28.333] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:16:30.905] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:16:48.151] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:16:48.160] Stage 1 matched: submit_button=True, query='What is the procedure to follow if I missed my office laptop?'
+[2026-05-31 16:16:48.163] Stage 1 calling st.rerun()
+[2026-05-31 16:16:48.383] Script run started. processing=True, query_to_run='What is the procedure to follow if I missed my office laptop?'
+[2026-05-31 16:16:48.393] Stage 2 matched: query_to_run='What is the procedure to follow if I missed my office laptop?'
+[2026-05-31 16:16:48.397] Stage 2 calling query_rag
+[2026-05-31 16:16:52.141] Stage 2 query_rag returned successfully: answer_len=664
+[2026-05-31 16:16:52.143] Stage 2 finally block: clearing flags and calling st.rerun()
+[2026-05-31 16:16:52.309] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:38:17.484] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:40:19.743] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:40:30.107] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:41:45.072] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:42:05.617] Script run started. processing=False, query_to_run=None
+[2026-05-31 16:42:05.632] Stage 1 matched: submit_button=True, query='Whats the procedure if I lost my office laptop?'
+[2026-05-31 16:42:05.636] Stage 1 calling st.rerun()
+[2026-05-31 16:42:06.148] Script run started. processing=True, query_to_run='Whats the procedure if I lost my office laptop?'
+[2026-05-31 16:42:06.162] Stage 2 matched: query_to_run='Whats the procedure if I lost my office laptop?'
+[2026-05-31 16:42:06.167] Stage 2 calling query_rag
+[2026-05-31 16:42:11.612] Stage 2 query_rag returned successfully: answer_len=1047
+[2026-05-31 16:42:11.616] Stage 2 finally block: clearing flags and calling st.rerun()
+[2026-05-31 16:42:12.048] Script run started. processing=False, query_to_run=None

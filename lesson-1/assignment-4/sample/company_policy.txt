@@ -1,0 +1,61 @@
+# Corporate Annual & Sick Leave Policy
+
+## 1. Annual Leave Accrual & Allocation
+All full-time employees accrue paid annual leave at a rate of 1.67 days per completed calendar month of service, resulting in an annual allocation of 20 days of paid annual leave per calendar year. Part-time employees accrue annual leave on a pro-rata basis based on their contracted hours. Temporary staff and independent contractors are not eligible for paid annual leave.
+
+## 2. Request & Approval Workflow
+To ensure business continuity, all annual leave requests must be submitted through the corporate HR portal at least two (2) weeks (14 calendar days) in advance. Requests for leave exceeding five (5) consecutive business days require at least one (1) month prior notice. All requests are subject to approval by the employee's direct manager. No leave is considered authorized until written approval is issued via the HR portal.
+
+## 3. Carry-Over & Expired Leave
+Employees are encouraged to use their annual leave within the calendar year it is accrued. A maximum of five (5) unused annual leave days may be carried over to the following calendar year. Any carried-over leave must be fully utilized by March 31st of the new calendar year, or it will be forfeited. No financial compensation or "cash-out" will be provided for unused, expired, or carried-over leave, except upon separation of employment.
+
+## 4. Core Working Hours
+To facilitate collaboration, the company operates under core working hours from 10:00 AM to 4:00 PM local time. All employees are expected to be available and actively working during these hours, regardless of their physical location or remote work status.
+
+## 5. Sick Leave & Medical Documentation
+Full-time employees are granted up to ten (10) days of paid sick leave per calendar year. Sick leave does not roll over to the next year and cannot be cashed out. Any sick leave extending beyond three (3) consecutive business days requires a valid medical certificate from a licensed physician, which must be uploaded to the HR portal within forty-eight (48) hours of returning to work. Frequent or patterns of sick leave (e.g., before/after weekends) may trigger a review by HR.
+
+
+# Remote Work & Equipment Stipend Guidelines
+
+## 1. Eligibility & Schedule Constraints
+Employees may work remotely up to three (3) days per week, subject to direct manager approval. The remaining two (2) days must be spent in the primary corporate office. The specific days allocated for remote work must be agreed upon with the manager to ensure adequate team coverage. Manager approval is contingent on the employee maintaining standard performance levels and meeting all deliverables.
+
+## 2. Remote Office Requirements
+When working remotely, employees must ensure they have a dedicated, distraction-free workspace. The remote location must have a secure, high-speed internet connection (minimum 25 Mbps download/10 Mbps upload) to support video conferencing. All company work must be conducted in a private space to prevent the disclosure of confidential corporate information. Working from public spaces (e.g., coffee shops) on confidential tasks is strictly prohibited.
+
+## 3. Ergonomic Office Equipment Stipend
+The company provides a one-time remote-office equipment stipend of up to $500 to reimburse employees for purchasing ergonomic home office furniture and equipment. Eligible items include ergonomic office chairs, desks (including standing desks), and external computer monitors. Items such as office supplies, decorative objects, keyboard/mouse accessories, and internet services are not eligible for reimbursement under this stipend.
+
+## 4. Expense Reimbursement Process
+To claim the equipment stipend, employees must submit a detailed expense report through the expense portal. The report must include scanned copies of itemized receipts showing the purchase date, store name, item description, and amount paid. Claims must be submitted within sixty (60) days of the purchase date. Any claims submitted after sixty (60) days or missing proper itemized receipts will be rejected.
+
+
+# Corporate Travel & Expense Reimbursement Policy
+
+## 1. Approved Business Travel & Bookings
+All corporate travel must be pre-approved in writing by the department head before booking. Employees are expected to book travel through the corporate travel partner portal. Air travel must be booked in economy class. Standard hotel room accommodations must be chosen; luxury suites, villas, or premium lodgings are not reimbursable. 
+
+## 2. Meal Allowance & Per Diem
+A daily meal allowance (per diem) of up to $75 is permitted for meals during approved travel days. This allowance covers breakfast, lunch, and dinner, including tips and taxes. Itemized receipts must be submitted for all meals. Purchase of alcohol is strictly excluded from reimbursement and must be paid for using personal funds.
+
+## 3. Ground Transportation & Mileage Reimbursement
+Employees are encouraged to use public transportation or ridesharing services (standard class) when traveling. Personal vehicle usage for approved business travel will be reimbursed at the standard rate of $0.67 per mile. Employees must submit a log of miles driven, indicating the starting location, destination, and business purpose of the trip. Parking fees and toll expenses are reimbursable with receipts, but traffic violations, speeding tickets, or parking fines are the sole responsibility of the employee.
+
+## 4. Submission Timelines & Approval Thresholds
+All travel expense claims, including receipts, must be submitted via the expense portal within thirty (30) days of returning from the trip. Any expense exceeding $250 requires pre-approval from the department head. Late submissions (after 30 days) will require executive committee approval and may be subject to partial or complete denial of reimbursement.
+
+
+# IT Security & Password Policy
+
+## 1. Password Complexity Rules
+All employee passwords must be a minimum of twelve (12) characters in length. Passwords must contain a combination of at least one (1) uppercase letter, one (1) lowercase letter, one (1) numeric character, and one (1) special character (e.g., !, @, #, $, %, ^, &, *). Passwords must not contain easily guessable words, user identifiers, or personal information (e.g., date of birth, family names).
+
+## 2. Multi-Factor Authentication (MFA)
+Multi-factor authentication (MFA) is mandatory for all corporate accounts, applications, and networks. Employees must enroll in the corporate authenticator app and use push notifications or one-time passcodes to complete sign-in processes. Disabling MFA or attempting to bypass authentication protocols is a critical security violation.
+
+## 3. Password Rotation & Reuse Restrictions
+Passwords must be updated by the employee every ninety (90) days. The system will automatically prompt the user to change their password when it is nearing expiration. Reuse of the employee's last four (4) passwords is strictly prohibited by the system.
+
+## 4. Lost Devices & Incident Reporting
+Any suspected security incident, phishing attempt, or lost corporate device (laptops, tablets, mobile phones) must be reported to the IT security operations center at security@company.com within twenty-four (24) hours. Prompt reporting is essential to enable remote wipe protocols and mitigate potential data breaches. Failure to report a lost corporate device within the 24-hour window may result in disciplinary action.

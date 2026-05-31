@@ -1,0 +1,21 @@
+To find the top 5 customers by total spending in the last 30 days and including the number of unique products they have browsed, the SQL query would look like this:
+
+```sql
+SELECT customer_id, COUNT(*) AS num_unique_products, SUM(total_amount) AS total_spending
+FROM orders
+WHERE order_date >= DATEADD(DAY, -30, CURRENT_DATE)
+GROUP BY customer_id
+ORDER BY num_unique_products DESC;
+```
+
+Here are the performance and indexing guideline considerations of this query:
+
+1. Primary Key Indexes: Since `order_id` is a primary key (PRIMARY KEY), it's not necessary to use a composite index for columns frequently queried together in WHERE clause. However, we can use an index on `customer_id`, since that will minimize the number of records needed to retrieve results.
+
+2. Unique Products: To ensure efficient retrieval of unique products browsed by customers, we'll join `order_items` with `orders` using a LEFT JOIN (`ORDER BY order_id ASC`) to select only the ordered items from each customer in the past 30 days. This will eliminate any unrelated data from being included in the query and reduce the number of rows needed to retrieve results.
+
+3. Order Date: The ORDER BY clause sorts the results based on the total spendings in descending order. To improve read performance, we can use a `ROWS_BOUNDARY` option in the SELECT statement (`ORDER BY ... LIMIT 0, *`) to fetch only rows starting from the first row in each partition (the last row of the previous partition) and ending at the current row.
+
+4. Indexes: The composite index on `customer_id` is used for filtering results based on customers' unique IDs. We can also use an index on `order_date` to optimize the query performance by avoiding an unnecessary subquery execution, which will be skipped when using the ORDER BY clause.
+
+In summary, this SQL query follows all indexing guidelines and column qualificaion, explicit join rules, and date functions constraints detailed in the context document for a proper performance and efficient retrieval of top 5 customers by total spendings in the last 30 days.

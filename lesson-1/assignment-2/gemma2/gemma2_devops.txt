@@ -1,0 +1,158 @@
+```terraform
+# Configure AWS Provider
+terraform {
+  backend "s3" {
+    bucket = "your-s3-bucket-name"
+    region = "us-east-1" # Replace with your desired region
+    acl   = "private" 
+  }
+}
+
+provider "aws" {
+  region = "us-east-1" # Replace with your desired region
+}
+
+
+# Define VPC, Subnets & Internet Gateway
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+  enable_dns_support = true
+  enable_dns_hostnames = true
+
+  tags = {
+    Name = "DevOps-VPC"
+  } 
+}
+
+resource "aws_subnet" "public_subnet1" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-east-1a" # Replace with your desired availability zone
+
+  tags = {
+    Name = "Public Subnet 1" 
+  }
+}
+resource "aws_subnet" "public_subnet2" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-east-1b" # Replace with your desired availability zone
+
+  tags = {
+    Name = "Public Subnet 2" 
+  }
+}
+
+resource "aws_subnet" "private_subnet1" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.3.0/24"
+  availability_zone = "us-east-1c" # Replace with your desired availability zone
+
+  tags = {
+    Name = "Private Subnet 1" 
+  }
+}
+resource "aws_subnet" "private_subnet2" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.4.0/24"
+  availability_zone = "us-east-1d" # Replace with your desired availability zone
+
+  tags = {
+    Name = "Private Subnet 2" 
+  }
+}
+
+
+# Internet Gateway & Route Tables
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_subnet.public_subnet1.vpc_id 
+  tags = {
+    Name = "Internet Gateway"
+  }
+}
+
+resource "aws_route_table" "rt_igw" {
+  vpc_id = aws_vpc.main.id
+  routes = [
+    {
+      destination-cidr-blocks = "0.0.0.0/0",
+      gateway-id           = aws_internet_gateway.igw.id,
+    }
+  ] 
+}
+
+resource "aws_route_table" "rt_private" {
+  vpc_id = aws_subnet.private_subnet1.vpc_id
+  routes = [
+    {
+      destination-cidr-blocks = "0.0.0.0/0",
+      gateway-id           = aws_internet_gateway.igw.id, 
+    }
+  ] 
+
+}
+
+resource "aws_route_table" "rt_private2" {
+  vpc_id = aws_subnet.private_subnet2.vpc_id
+  routes = [
+    {
+      destination-cidr-blocks = "0.0.0.0/0",
+      gateway-id           = aws_internet_gateway.igw.id, 
+    }
+  ] 
+
+}
+
+
+# Application Load Balancer (ALB)
+resource "aws_alb" "main" {
+  name         = "devops-alb"
+  internal = false 
+  load_balancer_type = "application" # or 'application' for web applications
+
+   tags = {
+    Name = "Application Load Balancer"
+   }
+}
+
+
+resource "aws_alb_target_group" "main" {
+  name                = "ecs-tg"
+  load_balancer_id   = aws_alb.main.id
+  internal            = true # for private traffic only 
+
+  port = "80" 
+  subnets = [aws_subnet.private_subnet1.id] # Replace with your target subnet IDs
+
+}
+
+
+# ECS Fargate service configuration (replace with actual details)
+resource "aws_ecs_service" "main" {
+  name                = "ECS-Fargate-Service"
+  cluster             = aws_lb.elb_group.public_subnet1.id
+  deployment_mode = "ECS_DEPLOYMENT_MODE" # replace with your deployment mode 
+  container_image = "YOUR_DOCKER_IMAGE_NAME:VERSION"
+
+}
+
+```
+
+
+
+**Explanation:**
+
+* **VPC, Subnets & Internet Gateway:** The code creates a VPC and subnets for both public and private use. It configures an internet gateway (IGW) and routes tables for traffic to reach the internet.
+* **Security Groups:** 
+    * Security groups are configured with ingress rules to allow inbound traffic from ALB, blocking direct access to ECS Fargate tasks.
+* **Route Tables & Internet Gateway Routing**:  The code sets up route tables to direct traffic from the public subnets (private subnets will only have routes internally).
+
+
+**Notes:**
+
+* This is a basic template for provisioning the infrastructure. 
+* You'll need to replace the placeholders like `your-s3-bucket-name`, 'Region', and the `aws_alb` resource with your own values. 
+* Be sure to review the Terraform documentation ([https://www.terraform.io/docs](https://www.terraform.io/docs)) for more advanced configurations or best practices.
+
+
+

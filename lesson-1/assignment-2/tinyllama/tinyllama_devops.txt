@@ -1,0 +1,48 @@
+# DevOp Infrastructure Troubleshooting Guide - EC2s & ECR
+
+1. Target Group Health Check:
+    - Security Group: The application load balancer (ALB) requires an Internet Gateway (IGW) and Application Load Balancer (ALB) security group to pull images from Docker Hub or AWS ECR. Ensure that the IGW's NAT Gateway is in place and that all ingress traffic is routed through the ALB's security groups.
+    - Security Group Rules: The application load balancer should have a route table with rules for traffic entering the subnet where the ALB is deployed. The route tables must be configured to allow incoming traffic on TCP port 80 (HTTP) and TCP port 443 (https).
+
+2. Public Subnets Setup:
+    - Create a VPC with at least two public subnets and a NAT Gateway (or VPC Endpoints for Amazon RDS) as required by the Application Load Balancer (ALB).
+    - Create routes for each private subnet to ensure they can access the ALB.
+
+3. Private Subnet Setup:
+    - Create a VPC with at least two private subnets and an Internet Gateway (IGW) as required by the Application Load Balancer (ALB).
+    - Assign a route table to each private subnet that allows traffic leaving the subnet on TCP port 80 and TCP port 443.
+
+4. Terraform Configuration:
+    1. Create a new VPC using the following command: `terraform init`
+       - Ensure that the IGW is in place for the private subnets and the ALB security groups have been created.
+    2. Create an EC2 instance with the required configuration, including a NAT Gateway if needed.
+    3. Install Terraform using the following command: `terraform version`
+       - Verify that all necessary dependencies are installed (such as the AWS SDK for Go).
+    4. Configure your Terraform configuration file to include the required security groups and route tables for each subnet.
+    5. Apply the Terraform configuration by using the following command: `terraform apply`
+
+   ```sh
+   terraform init
+   ```
+   
+   ```sh
+   # Install Terraform 0.12.x or higher
+   curl -sfL https://releases.hashicorp.com/terraform/0.12.6/terraform_0.12.6_linux_amd64.zip > terraform.zip
+   unzip terraform.zip
+   sudo mv terraform /usr/local/bin/
+   ```
+   
+   ```sh
+   # Create a new VPC with at least two public subnets and an Internet Gateway (IGW) as required by the Application Load Balancer (ALB).
+   terraform plan -var-file=vpc.tfvars
+   ```
+   
+   ```sh
+   # Assign a route table to each private subnet that allows traffic leaving the subnet on TCP port 80 and TCP port 443.
+   terraform plan -var-file=vpc.tfvars
+   ```
+   
+   ```sh
+   # Create routes for each private subnet to ensure they can access the ALB.
+   terraform plan -var-file=vpc.tfvars
+   ```

@@ -1,0 +1,96 @@
+```python
+
+import psycopg2
+
+from queue import Queue
+
+from threading import Lock, Thread
+
+from contextlib import closing
+
+
+class ConnectionPool:
+
+    def __init__(self, max_size=5):
+
+        self.connections = []
+
+        self.connection_queue = Queue(max_size)
+
+        self.lock = Lock()
+
+        for _ in range(0, maxinSize):
+
+            with closing(psycopg2.connect("dbname=yourdbname user=youruser password='yourpassword' host=localhost") as conn:  # Adjust connection parameters accordingly
+
+                self.connections.append(conn)
+
+        for _ in range(0, max_size):
+
+            with closing(self._create_new_connection()) as new_conn:
+
+                self.connection_queue.put(new_conn)
+
+
+    def _create_new_connection(self):
+
+        conn = psycopg2.connect("dbname=yourdbname user=youruser password='yourpassword' host=localhost")  # Adjust connection parameters accordingly
+
+        return conn
+
+
+    @contextlib.contextmanager
+
+    def get_connection(self):
+
+        with self.lock:
+
+            if not self.connections:
+
+                new_conn = self._create_new_connection()
+
+                try:
+
+                    acquired = self.connection_queue.get()  # Blocks until a connection is available or the queue is full
+
+                yield conn  # This will acquire and release locks implicitly within context manager scope
+
+            else:
+
+                with closing(self.connections.pop()) as conn:
+
+                    try:
+
+                        yield conn
+
+                finally:
+
+                        self.connection_queue.put(conn)  # Add connection back to the end of queue after use
+
+
+    def release_connection(self, conn):
+
+        with self.lock:
+
+            if not self.connections or len(self.connections) < self.connection_queue.maxsize:
+
+                self.connections.append(conn)
+
+
+# Usage example within a thread-safe context manager
+
+with ConnectionPool() as pool:
+
+    with conn = next(pool.get_connection()) as cur:  # Get connection from the pool and ensure it's closed properly after use
+
+        try:
+
+            cur.execute("SELECT * FROM yourtable")
+
+            result = cur.fetchall()
+
+        finally:
+
+            conn.close()  # Always close connections when done to avoid leaks
+
+```

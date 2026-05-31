@@ -1,0 +1,162 @@
+# aws_vpc.tf
+provider "aws" {
+    region = "us-east-1" # example, specify your preferred AWS region here
+}
+
+resource "aws_vpc" "example" {
+    cidr_block = "10.0.0.0/16" # replace with the desired CIDR for VPC (e.g., 10.x.x.0/17 to have a /20 space)
+}
+
+# Public Subnets
+resource "aws_subnet" "public_subnet_a" {
+    vpc_id                 = aws_vpc.example.id
+    cidr_block            = "10.1.1.0/24" # replace with desired CIDR block for the first public subnet (e.g., 10.x.x.0/24)
+    map_public_ip_on_launch   = true
+    associate_with_route_table {
+        id      = aws_route_table.association[0].id
+    }
+}
+
+resource "aws_subnet" "public_subnet_b" {
+    vpc_id                  = aws_vpc.example.id
+    cidr_block            = "10.2.2.0/24" # replace with desired CIDR block for the second public subnet (e.g., 10.x.y.0/24)
+    map_public_ip_on_launch   = true
+    associate_with_route_table {
+        id      = aws_route_table.association[1].id
+    }
+}
+
+# Private Subnets for Fargate tasks in public subnets (requires NAT Gateway or VPC Endpoints)
+resource "aws_subnet" "private_subnet_a" {
+    vpc_id                  = aws_vpc.example.id
+    cidr_block            = "10.3.3.0/24" # replace with desired CIDR block for the first private subnet (e.g., 10.x.z.0/24)
+    map_public_ip_on_launch   = false
+}
+
+resource "aws_subnet" "private_subnet_b" {
+    vpc_id                  = aws_vpc.example.id
+    cidr_block            = "10.4.4.0/24" # replace with desired CIDR block for the second private subnet (e.g., 10.x.z.0/24)
+    map_public_ip_on_launch   = false
+}
+
+# NAT Gateway or VPC Endpoints to route traffic from Fargate tasks in Private Subnets to Docker Hub / AWS ECR (if using private subnets for the services, this is necessary due to egress restrictions)
+resource "aws_nat_gateway" "example" {
+    name   = "NATGW-Example"
+    allocation_id = aws_eip.public_alb.*.allocation_id[0] # reference the allocated EIP for ALB here, or alternatively omit if using public subnets and no NAT Gateway needed
+    vpc_id  = aws_vpc.example.id
+}
+
+# Internet Gateway to route traffic from Public Subnets to IGW (for direct internet access)
+resource "aws_internet_gateway" "igw" {
+    vpc_id       = aws_vpc.example.id
+}
+
+# Route Tables for public subnet routing logic, ensuring all traffic goes through the ALB and NAT Gateway if using private Fargate tasks
+resource "aws_route_table" "public_routetable" {
+    vpc_id = aws_vpc.example.id
+    
+    route {
+        cidr_block       = "0.0.0.0/0" # Default route for public subnets to IGW
+        gateway_id      = aws_internet_gateway.igw.id
+    }
+}
+
+resource "aws_route_table" "public_routetable_a" {
+    vpc_id                  = aws_vpc.example.id
+    
+    route {
+        cidr_block       = "0.0.0.0/0" # Default route for public subnet a through IGW and NAT Gateway if using private Fargate tasks in the first pair of Subnets A & B (private)
+        nat_gateway_id    = aws_nat_gateway.example.id
+    }
+    
+resource "aws_route_table" "public_routetable_b" {
+    vpc_id                  = aws_vpc.example.id
+    
+    route {
+        cidr_block       = "0.0.0.0/0" # Default route for public subnet b through IGW and NAT Gateway if using private Fargate tasks in the first pair of Subnets A & B (private)
+        nat_gateway_id    = aws_nat_gateway.example.id
+    }
+    
+# Route Tables to route traffic from Private subnets towards ECS for public internet access, assuming private Fargate tasks are in the first pair of Subnet A & B (private) and using NAT Gateway/VPC Endpoints if needed 
+resource "aws_route_table" "private_routetable_a" {
+    vpc_id = aws_vpc.example.id
+    
+    nat_gateway_id    = aws_nat_gateway.example.id # required for private Fargate tasks to access resources outside of VPC via NAT Gateway or ECR using egress from public subnets if necessary 
+}
+
+resource "aws_route_table" "private_routetable_b" {
+    vpc_id                   = aws_vpc.example.id
+    
+    # No route here as private Fargate tasks in Subnet A will not require routing out of the VPC for external access (requires NAT Gateway or ECR with endpoint policies) 
+}
+
+# Target Group and ALB configuration assuming using public subnets for AWS-managed services & direct internet routes via IGW
+resource "aws_lb" "application_alb" {
+    name               = "ALBExample"
+    
+    load_balancer_type   = "network" # choosing network Load Balancer type (can be 'standard' as well)
+    internal           = false # using ALB in public subnets should point to private Fargate tasks if not used for web traffic directly 
+    security_groups {
+        name     = aws_security_group.alb.id
+        ingress  = ["-p tcp/80 -j allow"] # Allow HTTP (or other protocol and port) access via ALB to the application running in Fargate containers if needed
+        egress   = [for sg in var.private_security_groups : { cidr_block     = "${sg}" ] 
+    }
+}
+
+# ECS Security Group for a healthy target group, assuming using public subnets and an ALB routing to private Fargate tasks via NAT Gateway or VPC Endpoints if needed
+resource "aws_security_group" "fargate_task_sg" {
+    name        = "ECSTaskSGExample"
+    
+    ingress {
+      from_port   = 80 # Change this to your Fargate container's listening port, e.g., -p tcp/80:to-ALB if required by the ALB configuration in Task Security Group rules
+      protocol = "tcp"
+      cidr_blocks = ["0.0.0.0/0"] # Allow traffic from anywhere (can be more restrictive for security)
+      description = "Ingress to ECS Fargate tasks via the ALB."
+    }
+    
+    egress {
+      # Change this if additional ingress is needed, or block certain inbound as per your application requirements. Defaults: allow all outbound from private subnet traffic 
+      ipv6_cidr_block        = null
+      to_port   = 0         # Allow any egress port (can be more restrictive for security)
+      from_port    = 0
+      protocol    = "-1"       # Use all IP Protocols if not using UDP, else specify a single one like TCP/UDP:64320 or -p tcp/udp-80:to-ALB for specific ports and protocol as required by the ALB configuration
+      description = "Egress to anywhere."
+    }
+}
+
+# ECS Launch Configuration with Fargate (assuming using public subnets) if NAT Gateway is used else define different rules accordingly.
+resource "aws_ecs_service" "example" {
+    name        = "MyFargateService"
+    
+    cluster_name   = aws_ecs_cluster.mycluster.id # replace with your ECS Cluster Name or ID if needed
+    
+    task_definition_arn          = data.aws_iam_policy_document.task_execution_role."path_externalized" 
+    ecs_scheduling_strategy   = "REPLACE_WITH_YOUR_SCHEDULING_STRATEGY" # Replace with desired scheduling strategy, if any (e.g., FARGO)
+    
+    launch_type      = "FARGEUARTIFACTORY"  # Use the default ECS Launch Type for running on-demand instances without managing EC2 instances directly as needed
+    depends_on {
+        service_name         = aws_ecs_cluster.mycluster.id
+    }
+    
+    security_groups      = [aws_security_group.alb.id] # Connect the ECS Security Group with ALB's security group for health checks 
+}
+
+# Elastic IP to simulate and test Route53 DNS name as domain (optional) - this is not mandatory but can be used if you wish so
+resource "aws_eip" "public_alb_elasticip" {
+    vpc_id = aws_vpc.example.id  # replace with your VPC ID where the ALB resides and NAT Gateway exists, or use default public IP for ECS Fargate tasks if applicable
+    
+}
+
+# Additional configurations such as DNS (Route53) setup would be required here to resolve domain names pointing to the Load Balancer. 
+resource "aws_route5econtext" {
+    name                 = "MyALBRecordSetExample" # Example, replace with actual record set configuration if using Route53 for CNAME or ALIASES
+    
+}
+
+Please note that this Terraform script assumes the use of public subnets and requires NAT Gateway/VPC Endpoints to route traffic from private Fargate tasks. If you're only working with a single set (public) in your design, modify accordingly by removing or adjusting resources related to Private Subnets and replacing them as necessary based on the provided guide for handling security concerns within VPC subnet designs where ECS Fargate services are deployed.
+ 
+Remember that this is just an example of how you might configure these AWS resources with Terraform, but actual implementation details like CIDR blocks will depend on your specific needs and existing network setup; adjust the values accordingly to fit those requirements while ensuring proper VPC design best practices (e.g., not using overlapping IP ranges). Also note that this script does not handle more complex networking concerns such as AWS PrivateLink, IAM roles for ECS tasks or Fargate execution policies and assumes default security group settings are insufficiently restrictive; adjust these according to your use case by adding necessary ingress/egress rules.
+ 
+Additionally, the provided script does not contain specific health check configurations on EC2 instances but instead targets a more container-centric approach where ALB would be used in conjunction with Fargate Tasks as they do not require an elastic IP or custom networking settings since AWS ECS handles these for you. If using public subnets, security groups should block all ingress from the internet and route traffic through NAT Gateway/VPC Endpoints if accessing private Docker Hub images (or any other inbound resources).
+ 
+Finally, always review your Terraform apply output before deploying to production as this script may need further adjustments based on specific AWS configurations or infrastructure setups.

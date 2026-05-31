@@ -1,0 +1,166 @@
+# Terraform configuration file for provisioning an AWS VPC with 2 public subnets, 2 private subnets, and an Internet Gateway, Application Load Balancer (ALB) routing traffic to an EC2 service
+
+terraform {
+  backend "aws_vpc" {
+    name = "<your-vpc-name>"
+    cidr_block = "10.0.0.0/16"
+  }
+}
+
+data "aws_subnet" "public" {}
+data "aws_subnet" "private" {}
+
+provider "aws" {
+  region = "<your-region>"
+  env     = "<your-env-name>"
+}
+
+output "vpcid" {
+  value = data.aws_vpc.public.id
+}
+
+output "subnetids" {
+  for_each = {
+    for sub in data.aws_subnet.public.*:
+      {"public-subnet": id = sub.id},
+    for sub in data.aws_subnet.private.*:
+      {"private-subnet": id = sub.id}
+  }
+
+  value = []
+  for _, v in pair(values(outputs)["vpcid"], values(outputs)["subnetids"]) {
+    value += [v.public-subnet] + [v.private-subnet]
+  }
+
+  count = length(value)
+}
+
+variable "security_groups" {
+  type        = list(string)
+  default      = []
+  description = "A list of security groups to associate with this VPC."
+}
+
+variable "route_table_ids" {
+  type        = list(string)
+  default      = []
+  description = "A list of route table IDs to use for the Internet Gateway."
+}
+
+variable "default_security_group_ids" {
+  type        = list(string)
+  default      = ["<your-default-security-group-id>"]
+  description = "A list of security group IDs to apply to all VPC subnets, if no security groups are provided."
+}
+
+variable "internet_gateway_attachment" {
+  type        = string
+  default      = ""
+  description = "The ID of the Internet Gateway attachment to create for this VPC."
+}
+
+variable "application_load_balancer_attachment" {
+  type        = string
+  default      = ""
+  description = "The ID of the Application Load Balancer attachment to create for this VPC."
+}
+
+variable "alb_target_group" {
+  type        = string
+  default      = ""
+  description = "The name of the ALB target group to create for this VPC. This is used by the EC2 service. "
+}
+
+# Creates a new VPC with the given subnets and security groups
+resource "aws_vpc" "default" {
+  cidr_block    = var.cidr_block
+  enable_dns_host = false
+  tags = {
+    Name = "<your-VPC-name>"
+  }
+}
+
+# Creates a new subnet for each specified public and private subnet, with default security group and route table IDs
+resource "aws_subnet" "public" {}
+for sub in data.aws_subnet.public.*:
+  tags = {
+    Name = sub.name + "-Public"
+  }
+  cidr = var.cidr_block
+  vpc_id = aws_vpc.default.id
+  route_table_ids += var.route_table_ids
+  
+resource "aws_subnet" "private" {}
+for sub in data.aws_subnet.private.*:
+  tags = {
+    Name = sub.name + "-Private"
+  }
+  cidr = var.cidr_block + "/32"
+  vpc_id = aws_vpc.default.id
+  route_table_ids += var.route_table_ids
+  
+# Creates a new Internet Gateway with the default security groups and attaches it to each subnet in the VPC, creating an attachment between the subnets and the gateway
+resource "aws_internet_gateway" "default" {
+  vpc_id = aws_vpc.default.id
+  
+  tags = {
+    Name = var.internet_gateway_attachment + "-InternetGateway"
+  }
+  
+  route_table_ids += [aws_route_table.public.id]
+}
+
+# Creates a new Application Load Balancer with the given name, attaches it to each subnet in the VPC, and sets its target group and health checks
+resource "aws_application_load_balancer" {
+  name = var.alb_target_group + "-ALB"
+  
+  tags = {
+    Name = var.alb_target_group + "-ALB"
+  }
+  
+  subnet_ids += [for sub in data.aws_subnet.public.*:
+                    {"id": sub.id}] + [for sub in data.aws_subnet.private.*:
+                                         {"id": sub.id}]
+}
+
+# Creates a new Application Load Balancer target group with the given name, attaches it to each subnet in the VPC, and sets its desired capacity to 3
+resource "aws_application_load_balancer_target_group" {
+  name = var.alb_target_group + "-TargetGroup"
+  
+  tags = {
+    Name = var.alb_target_group + "-TargetGroup"
+  }
+  
+  subnet_ids += [for sub in data.aws_subnet.public.*:
+                    {"id": sub.id}] + [for sub in data.aws_subnet.private.*:
+                                         {"id": sub.id}]
+  desired_capacity = 3
+}
+
+# Creates a new Application Load Balancer routing rules for each specified public and private subnet
+resource "aws_application_load_balancer_routing_rule" {
+  name = var.alb_target_group + "-RoutingRule-Public-Subnet"
+  
+  tags = {
+    Name = var.alb_target_group + "-RoutingRule-Public-Subnet"
+  }
+  
+  subnet_id = data.aws_subnet.public.*.id
+}
+for sub in data.aws_subnet.private.*:
+  tags = {
+    Name = var.alb_target_group + "-RoutingRule-Private-Subnet"
+  }
+  
+  subnet_id = data.aws_subnet.private.*.id
+  
+  resource "aws_application_load_balancer_routing_rule" {
+    name = var.alb_target_group + "-RoutingRule-Private-Subnet"
+    
+    tags = {
+      Name = var.alb_target_group + "-RoutingRule-Private-Subnet"
+    }
+    
+    subnet_id = data.aws_subnet.private.*.id
+  }
+}

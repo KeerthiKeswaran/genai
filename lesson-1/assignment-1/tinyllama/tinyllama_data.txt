@@ -1,0 +1,18 @@
+To find the top 5 customers by total spend in the last 30 days and their respective product purchases, we can use a SQL join operation:
+
+```sql
+SELECT c1.customer_id, COUNT(DISTINCT oi.product_id) AS num_products_spent
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY c1.customer_id
+HAVING COUNT(DISTINCT oi.product_id) >= 3;
+```
+
+In this query, we're using a "having" clause to filter the results based on the minimum number of distinct product purchases from each customer in the last 30 days. The `COUNT(DISTINCT)` operator will count all the unique product IDs in each customer's order items, and then divide this by the total count (i.e., the number of orders) to get a metric of how many times each product was purchased per customer.
+
+If we choose an appropriate index for the `customer_id` column, we can expect the resulting query to perform well on a large number of customers. To optimize query performance, we could add indexes to the columns used in this join operation:
+
+- The `customer_id` column can be added as an indexed column to the `orders` table using INDEX (`idx_orders_customer_id`) or UNIQUE (`idx_orders_customer_id_uniq`).
+- The `order_date` column can be added as a non-indexed CLUSTERED (PER FIELD) column, which will allow the query to use indexes on all columns that are present in each row. This may not perform well for large numbers of customers and could lead to more time spent accessing the table due to unnecessary disk scans.
+
+In summary, using an appropriate index for the `customer_id` column (if it's an indexed field) and performing a filtering join with a `HAVING` clause based on minimum product spend can help improve query performance in the situation where we have many customers with similar purchase history.

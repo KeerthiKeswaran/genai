@@ -1,0 +1,215 @@
+## Terraform Configuration for AWS VPC with ALB and ECS Fargate Service
+
+This configuration creates a basic AWS VPC with dedicated subnets for public/private use, an internet gateway, and an ALB load balancer, all configured to route traffic to an ECS Fargate service. It also includes security groups to control network access.
+
+```terraform
+# Configure the AWS Provider
+provider "aws" {
+  region = "us-east-1" # Replace with desired region
+}
+
+# Create a VPC Network
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16" 
+  enable_dns_hostnames = true
+  enable_dns_support = true
+
+  tags = {
+    Name = "Main VPC"
+  }
+}
+
+# Create Subnets (Public and Private)
+resource "aws_subnet" "public_subnet" {
+  vpc_id     = aws_vpc.main.id 
+  availability_zone = "us-east-1a" # Replace with desired AZs
+  cidr_block   = "10.0.1.0/24" 
+}
+
+resource "aws_subnet" "private_subnet" {
+  vpc_id     = aws_vpc.main.id 
+  availability_zone = "us-east-1b" # Replace with desired AZs
+  cidr_block   = "10.0.2.0/24" 
+}
+
+
+# Configure Internet Gateway for VPC Communication
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "IGW"
+  }
+}
+
+# Create Security Groups (for EC2 instances and ALB)
+resource "aws_security_group" "allow_http" {
+  name = "Allow HTTP traffic to ALB" 
+  description = "Allow HTTP traffic to the ALB" 
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+  } 
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1" # All Protocols
+  } 
+}
+
+resource "aws_security_group" "allow_alb" {
+  name = "Allow ALB traffic to ECS Fargate" 
+  description = "Allow ALB traffic to ECS Fargate"
+
+  ingress {
+     from_port   = 80
+     to_port     = 443
+     protocol    = "tcp" 
+  } 
+
+  egress {
+     from_port   = 0
+     to_port     = 0
+     protocol    = "-1" # All Protocols
+  } 
+}
+
+
+# Create Application Load Balancer (ALB) with Routing to ECS Fargate
+resource "aws_lb" "alb" {
+  name = "ecs-fargate-alb" 
+  internal = false
+
+  load_balancer_type = "application"
+
+  # Configure the ALB to route traffic to an ECS Fargate service
+  health_check_protocol = "HTTP" # Or TCP, but HTTP is usually preferred for general use.
+  health_check_port = 80
+  health_check_path = "/" # Root path of your ALB
+
+  load_balancer_type = "application"
+
+  tags = {
+    Name = "ECS Fargate ALB"
+  }
+}
+
+#  Route traffic to ECS Fargate service using the ALB
+resource "aws_lb_target_group" "alb_target_group" {
+  name = "ecs-fargate-target-group" 
+  load_balancer_arn = aws_lb.alb.arn
+}
+resource "aws_lb_target_action" "ecs_target_group" {
+  name = "ecs-fargate-target-action"
+
+  type = "ECS" # Use ECS as the target type for this example
+}
+
+# Configure ECS Fargate Service (Replace placeholders with your own) 
+resource "aws_ecs_service" "ecs_fargate" {
+  name = "my-ecs-service"  
+  desired_count = 1 # Number of instances to run
+  task_role_arn = aws_iam_role.fargate_role.arn # Replace with IAM role ARN
+  execution_role_arn = aws_iam_role.ecs_execution_role.arn # Replace with IAM role ARN
+
+  network_config { 
+    private_ip_address = "0.0.0.0" # Set to private IP address or use a specific subnet
+  }
+
+  task_definition {
+    image = "${data.aws_ecs_service.fargate_task_definition.image}" # Replace with your ECS Task Definition ARN
+    environment = {"ENV1": "value1"}
+  }
+
+  # Configure the Security Groups for Fargate Tasks
+  security_groups = [aws_security_group.allow_http.id] 
+
+}
+
+# Create an IAM Role for ECS tasks (replace with your own)
+resource "aws_iam_role" "fargate_role" {
+  name = "ecs-fargate-task-role"
+  assume_role_policy = jsonencode(
+    {
+      "Version": "2012-10-17", 
+      "Statement": [
+        {
+          "Action": "sts:AssumeRole",
+          "Principal": {
+            "Service": "ecs.amazonaws.com"
+          },
+          "Effect": "Allow",
+          "Sid": ""
+        }
+      ]
+    }
+  )
+
+  policies = [
+    {
+      "PolicyName": "ECS Fargate Policy", 
+      "PolicyDocument": {
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "ecs.amazonaws.com"
+            },
+            "Action": "ecs:StartTask",
+            "Resource": "*"
+          }
+        ]
+      }
+    }
+  ] 
+}
+
+
+# Example of an ECS Task Definition (replace with your desired task definition)
+resource "aws_ecs_task_definition" "fargate_task_definition" {
+  family = "my-task-definition"
+
+  container_definitions = [
+    {
+      name: "web", 
+      image: "nginx:latest", 
+      ports: [
+        {"container_port": 80, "protocol":"tcp"},
+      ],
+      command: ["nginx","-g"] , # Replace with your specific command to run the task.
+    }
+  ]
+
+   # Assign network configuration (replace placeholders)
+   network = aws_vpc.main.id 
+
+}
+
+
+```
+
+**Explanation:**
+
+* **VPC Configuration:** Creates a VPC with two public subnets and two private subnets, using `aws_vpc`, `aws_subnet`, and `aws_internet_gateway` resources. 
+* **Security Groups:** Defines security groups for the VPC and ALB to control traffic flow (ingress/egress).  
+* **Application Load Balancer:** Creates an Application Load Balancer (`aws_lb`) and targets it using a target group (`aws_lb_target_group`).   
+* **ECS Fargate Service:**  Creates an ECS service with the task definition for your application. 
+
+
+**Important notes:**
+
+*  Replace placeholders like `region`, `aws_vpc.main.id`, and task definition ARN, IAM role ARN, and security group IDs with your actual values. 
+*  Adjust the configuration parameters for VPC subnets, internet gateway, and load balancer as needed. 
+
+
+ **Further Customization:**
+
+*   **ECS Configuration:** Implement more specific configurations for your ECS service (e.g., desired count, memory, CPU limits) based on your application requirements.
+*   **Security Considerations:**  Implement advanced security measures like VPC peering or security groups with appropriate rules for better network isolation and protection of sensitive data. 
+
+
+
+This configuration can serve as a starting point for setting up an AWS-based environment with an ALB routing traffic to ECS Fargate. Remember to adjust the parameters based on your specific application needs and requirements.  

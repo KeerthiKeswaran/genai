@@ -1,0 +1,25 @@
+# Data Department - Database Schema Rules & Indexing Guidelines
+
+1. Table Schemas:
+   - `orders`:
+     - `order_id` (PRIMARY KEY, UUID)
+     - `customer_id` (FOREIGN KEY referencing customers.customer_id, UUID, NOT NULL)
+     - `order_date` (TIMESTAMP, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
+     - `total_amount` (NUMERIC(10,2), NOT NULL)
+   - `order_items`:
+     - `item_id` (PRIMARY KEY, UUID)
+     - `order_id` (FOREIGN KEY referencing orders.order_id, UUID, NOT NULL, ON DELETE CASCADE)
+     - `product_id` (UUID, NOT NULL)
+     - `quantity` (INTEGER, NOT NULL, CHECK (quantity > 0))
+     - `unit_price` (NUMERIC(10,2), NOT NULL)
+
+2. Query Constraints & Standards:
+   - Always qualify column names with table aliases.
+   - Use explicit INNER/LEFT/RIGHT JOIN syntax; implicit comma-based joins are strictly forbidden.
+   - For aggregate operations, filter rows as early as possible using WHERE instead of HAVING.
+   - Wrap date comparisons with appropriate database functions to ensure index usability (avoid calling functions on indexed columns, e.g., use `order_date >= CURRENT_DATE - INTERVAL '30 days'` instead of `DATE_PART('day', NOW() - order_date) <= 30`).
+
+3. Performance and Indexing Guidelines:
+   - Every foreign key column must have an index.
+   - Composite indexes should be created for columns frequently queried together in WHERE clauses.
+   - Avoid `SELECT *`. Explicitly list the columns needed to minimize bandwidth and leverage covering indexes.

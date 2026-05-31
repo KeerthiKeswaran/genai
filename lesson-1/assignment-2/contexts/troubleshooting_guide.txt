@@ -1,0 +1,14 @@
+# DevOps Infrastructure Troubleshooting Guide - ECS & ALB
+
+1. Target Group Unhealthy Status:
+   - Symptoms: ECS Fargate tasks are spawned but immediately terminated; the ALB shows targets as "Unhealthy".
+   - Troubleshoot Steps:
+     1. Check Security Groups: Ensure the ALB Security Group has egress allowed to the ECS task Security Group on the application port.
+     2. Check ECS Task Security Group: Ensure it has ingress allowed from the ALB Security Group on the container port.
+     3. Check Health Check Path: Verify that the path configured in the Target Group (e.g., `/healthz` or `/`) exists on the container application and returns a HTTP 200 status code.
+     4. Check Health Check Port: Ensure the target group health check port matches the container port or is set to "traffic-port".
+
+2. VPC Routing & Internet Access:
+   - ECS Fargate tasks in private subnets require a NAT Gateway (or VPC Endpoints) to pull images from Docker Hub or AWS ECR.
+   - Public subnets must have a route pointing to the Internet Gateway (IGW) for public ALB accessibility.
+   - Security groups for Fargate services should block all direct ingress from the public internet, routing all inbound traffic exclusively through the ALB.

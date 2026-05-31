@@ -1,0 +1,100 @@
+Here's an example Python function that implements a thread-safe PostgreSQL database connection pool using a connection array:
+
+```python
+import psycopg2
+from threading import Lock
+
+def create_pool():
+    """
+    Creates a connection pool for the specified number of connections.
+    :return: A pool containing the specified number of connections.
+    """
+    conn_max = 100  # maximum number of allowed connections
+    conn_min = 50   # minimum number of connections required to create
+    pool = []        # empty list to store created pools
+    lock = Lock()     # synchronized access to the connection array
+    for I in range(conn_max):
+        try:
+            pool.append({'connection': psycopg2.connect(host="localhost", dbname="exampledb"), 'lock': lock})
+        except ConnectionError as e:
+            if e.args[0] != "Connection refused":  # catch error with a specific message
+                raise Exception("Invalid host/database connection string!")
+    return {'pool': pool}
+```
+
+Here's how you can use this function:
+
+1. First, import the necessary packages and functions:
+   ```python
+   from psycopg2 import connect as psycopg2_connect
+   from threading import Lock
+
+   import datetime
+
+   import logging
+   logger = logging.getLogger(__name__)
+   ```
+
+2. Set up a connection pool using the create_pool function:
+   ```python
+   # define minimum required connections (i.e., number of allowed connections)
+   min_conns = 50
+
+   # set maximum connections to be used (i.e., number of connections available at any time)
+   max_conns = 100
+
+   # set up connection pool using minimum required connections and create it
+   pool = create_pool()
+   ```
+
+3. Create a new database connection object in the function using a closure or context manager:
+   ```python
+   conn_lock = Lock()
+   with conn_lock:
+       try:
+           # open a database connection and save it in the 'connection' attribute of the connection pool dictionary
+           conn = psycopg2_connect(dbname="exampledb")
+           if not isinstance(conn, dict):
+               raise Exception("Invalid connection string!")
+           else:
+               conn['pool'].append({'connection': conn, 'lock': conn_lock})
+       except ConnectionError as e:
+           logger.exception(e)
+   ```
+
+4. Use the created pool to make requests and store the results in a dictionary of request results:
+   ```python
+   # define requesting functions/methods
+   def get_something():
+       ...
+       return some_result()
+
+   def get_another_thing():
+       ...
+       return another_result()
+
+   # make requests and store the results in dictionaries
+   things = [get_something(), get_another_thing()]
+   for thing in things:
+       result = pool[thing['pool']['lock']]['connection'].execute(thing['query'], *thing['args'])
+       if not isinstance(result, dict):
+           raise Exception("Invalid query/response!")
+       else:
+           results = {}  # create empty dictionary to store the request results
+           for key, value in result.items():
+               if value is not None and isinstance(value, list):
+                   results[key] = [item for item in value if item is not None]
+           return results
+   ```
+
+5. Free up connections:
+   ```python
+   # free the database connection resources and return a dictionary of query/response results (if any)
+   res_dict = {}
+   for thing in things:
+       res_dict[thing['query']] = pool[thing['pool']['lock']]['connection'].execute(thing['query'], *thing['args'])
+   if not isinstance(res_dict, dict):
+       raise Exception("Invalid query/response!")
+   else:
+       return res_dict
+   ```
